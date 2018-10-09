@@ -2,11 +2,12 @@
 #include <glm/glm.hpp>
 
 #include "Physics.h"
+#include "Graphics.h"
 
 #define PI 3.14159265f
 
 #define RADIUS 1.0f
-const glm::vec2 virtSize(400.0f, 400.0f);
+const glm::vec2 virtSize(10.0f, 10.0f);
 
 void constructArrow(Projectile& arrow)
 {
@@ -21,18 +22,25 @@ void constructBow(Bow& bow)
 	bow = { 1.25f, 0.07f, 470.f, 0.9f };
 }
 
+glm::vec2 toScreenSpace(const glm::vec3& v, sf::RenderWindow& window)
+{
+	float x = v.x / virtSize.x * (float)window.getSize().x;
+	float y = v.z / virtSize.y * (float)window.getSize().y;
+	return glm::vec2(x, y);
+}
+
+glm::vec2 toScreenSpace(const glm::vec2& v, sf::RenderWindow& window)
+{
+	float x = v.x / virtSize.x * (float)window.getSize().x;
+	float y = v.y / virtSize.y * (float)window.getSize().y;
+	return glm::vec2(x, y);
+}
+
 int main()
 {
 	Physics phys;
 	sf::RenderWindow window(sf::VideoMode(800, 800), "SFML works!");
-	const float radius = 1.0f;
-	sf::CircleShape shape(radius);
-	shape.setFillColor(sf::Color::Green);
-
-	float sx = shape.getRadius() / virtSize.x * (float)window.getSize().x;
-	float sy = shape.getRadius() / virtSize.y * (float)window.getSize().y;
-	shape.setRadius(sqrt(sx*sx+sy*sy));
-
+	/*
 	Bow bow;
 	Projectile arrow;
 	constructArrow(arrow);
@@ -41,6 +49,16 @@ int main()
 	float x = 1.0f;
 	phys.applyBowForce(&arrow, &bow, dir, x);
 	phys.addProjectile(&arrow);
+	*/
+	float radius = 0.25f;
+	Projectile ball1 = { {0.0f, 0.0f, 5.0f},{virtSize.x/2.0f + 0.1f, 0.0f, radius}, radius*radius*PI, 1.f, 0.4f };
+	Projectile ball2 = { {0.0f, 0.0f, -30.0f},{virtSize.x / 2.0f, 0.0f, virtSize.y - radius}, radius * radius * PI, 1.f, 0.4f };
+	phys.addProjectile(&ball1);
+	phys.addProjectile(&ball2);
+	
+	glm::vec2 r = toScreenSpace(glm::vec2(radius, radius), window);
+	float radiusW = r.x;
+	Graphics graphics(&window);
 
 	sf::Clock t;
 	float time = 0.0f;
@@ -56,9 +74,7 @@ int main()
 		float dt = t.getElapsedTime().asSeconds();
 		phys.update(dt);
 		t.restart();
-		float x = arrow.pos.x / virtSize.x * (float)window.getSize().x;
-		float y = arrow.pos.z / virtSize.y * (float)window.getSize().y;
-		shape.setPosition(x, y);
+
 
 		time += dt;
 		if (time > 1.0f)
@@ -67,8 +83,17 @@ int main()
 			time = 0.0f;
 		}
 
-		window.clear();
-		window.draw(shape);
+		window.clear(); 
+		glm::vec2 ball1Pos = toScreenSpace(ball1.pos, window);
+		glm::vec2 ball2Pos = toScreenSpace(ball2.pos, window); 
+		graphics.drawBall(ball1Pos, radiusW, sf::Color::Blue);
+		graphics.drawBall(ball2Pos, radiusW, sf::Color::Red);
+
+		glm::vec2 dir2(ball2.vel.x, ball2.vel.z);
+		graphics.drawDbArrow(ball2Pos, dir2, 5.0f, 40.f, sf::Color::White);
+		
+		glm::vec2 dir1(ball1.vel.x, ball1.vel.z);
+		graphics.drawDbArrow(ball1Pos, dir1, 5.0f, 40.f, sf::Color::White);
 		window.display();
 	}
 
