@@ -4,6 +4,7 @@
 #include "Physics.h"
 #include "Graphics.h"
 
+#define TIME_STEP_FACTOR 1.0f 
 #define PI 3.14159265f
 
 #define RADIUS 1.0f
@@ -14,7 +15,7 @@ void constructArrow(Projectile& arrow)
 	const float arrowHeadArea = 0.00034925f;
 	const float mass = 0.018f;
 	glm::vec3 startPos(RADIUS, 0.f, virtSize.y - 1.5f);
-	arrow = { glm::vec3(0.0f), startPos, arrowHeadArea, mass, 0.04f };
+	arrow = { glm::vec3(0.0f), startPos, {0.0f, 0.0f, 0.0f}, arrowHeadArea, mass, 0.04f };
 }
 
 void constructBow(Bow& bow)
@@ -51,8 +52,8 @@ int main()
 	phys.addProjectile(&arrow);
 	*/
 	float radius = 0.25f;
-	Projectile ball1 = { {0.0f, 0.0f, 5.0f},{virtSize.x/2.0f + 0.1f, 0.0f, radius}, radius*radius*PI, 1.f, 0.4f };
-	Projectile ball2 = { {0.0f, 0.0f, -30.0f},{virtSize.x / 2.0f, 0.0f, virtSize.y - radius}, radius * radius * PI, 1.f, 0.4f };
+	Projectile ball1 = { {0.0f, 0.0f, 5.0f},{virtSize.x/2.0f + 0.1f, 0.0f, radius}, {0.0f, 0.0f, 0.0f}, radius*radius*PI, 1.f, 0.4f };
+	Projectile ball2 = { {0.0f, 0.0f, -30.0f},{virtSize.x / 2.0f, 0.0f, virtSize.y - radius}, {0.0f, 0.0f, 0.0f}, radius * radius * PI, 1.f, 0.4f };
 	phys.addProjectile(&ball1);
 	phys.addProjectile(&ball2);
 	
@@ -72,7 +73,7 @@ int main()
 		}
 
 		float dt = t.getElapsedTime().asSeconds();
-		phys.update(dt);
+		phys.update(dt*TIME_STEP_FACTOR);
 		t.restart();
 
 
@@ -90,10 +91,10 @@ int main()
 		graphics.drawBall(ball2Pos, radiusW, sf::Color::Red);
 
 		glm::vec2 dir2(ball2.vel.x, ball2.vel.z);
-		graphics.drawDbArrow(ball2Pos, dir2, 5.0f, 40.f, sf::Color::White);
+		//graphics.drawDbArrow(ball2Pos, dir2, 5.0f, 40.f, sf::Color::White);
 		
 		glm::vec2 dir1(ball1.vel.x, ball1.vel.z);
-		graphics.drawDbArrow(ball1Pos, dir1, 5.0f, 40.f, sf::Color::White);
+		//graphics.drawDbArrow(ball1Pos, dir1, 5.0f, 40.f, sf::Color::White);
 		window.display();
 	}
 

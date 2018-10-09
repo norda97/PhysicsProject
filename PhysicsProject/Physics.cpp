@@ -18,17 +18,17 @@ void Physics::update(float dt)
 	time += dt;
 	if (time > 1.f/UPDATE_FREQUENCY)
 	{
+		for (unsigned int i = 0; i < this->projectiles.size(); i++)
+			updateProjectile(1.f / UPDATE_FREQUENCY * TIME_FACTOR, this->projectiles[i]);
+
 		Projectile* p1 = this->projectiles[0];
 		Projectile* p2 = this->projectiles[1];
 		glm::vec3 loa;
-		if (SphereSphereCollision(p1->pos, 0.25f, p2->pos, 0.25f, loa))
+		if (SphereSphereCollision(*p1, 0.25f, *p2, 0.25f, loa))
 		{
-			//printf("Collision!\n");
+			printf("Collision!\n");
 			collisionResponse(*p1, *p2, 0.0f, loa);
 		}
-
-		for (unsigned int i = 0; i < this->projectiles.size(); i++)
-			updateProjectile(1.f/UPDATE_FREQUENCY * TIME_FACTOR, this->projectiles[i]);
 
 		time = 0.0f;
 	}
@@ -71,16 +71,19 @@ float Physics::calcAirResistence(float cd, float area, const glm::vec3 & vel)
 	return 0.5f * AIR_DENSITY * area * cd * glm::length2(vel);
 }
 
-bool Physics::SphereSphereCollision(glm::vec3 & p1, float r1, glm::vec3 & p2, float r2, glm::vec3& loa)
+bool Physics::SphereSphereCollision(Projectile& p1, float r1, Projectile& p2, float r2, glm::vec3& loa)
 {
-	glm::vec3 p1p2 = p2 - p1;
+	glm::vec3 p1p2 = p2.pos - p1.pos;
 	const float d = r1 + r2;
 	float l = glm::length(p1p2);
 	if (l <= d)
 	{
-		loa = glm::normalize(p1p2);
-		p1 += loa * (l - d)*.5f;
-		p2 += loa * (d - l)*.5f;
+		glm::vec3 u = p2.vel - p1.vel;
+		float x = d - l;
+		float t = x / glm::length(u);
+		p1.pos -= t * p1.vel;
+		p2.pos -= t * p2.vel;
+		loa = glm::normalize(p2.pos - p1.pos);
 		return true;
 	}
 	return false;
@@ -103,4 +106,16 @@ void Physics::collisionResponse(Projectile & p1, Projectile & p2, float e, const
 	// TODO: Add friction and angular velocity.
 	p1.vel += (u1rho - v1rho)*loa;
 	p2.vel += (u2rho - v2rho)*loa;
+
+	// Avoid unecessary collision.
+	p1.pos += glm::normalize(p1.vel)*0.1f;
+	p2.pos += glm::normalize(p2.vel)*0.1f;
+
+	// Angular velocity
+	/*float friction = 0.03;
+	float radius = 2;
+	A = (p1.mass * radius * friction * (u1rho - v1rho)) / 0.4*p1.mass*radius*radius;
+	glm::vec3 en = glm::cross(loa, )
+	p1.angVel = 
+	*/
 }

@@ -15,6 +15,7 @@ struct Projectile
 {
 	glm::vec3 vel;
 	glm::vec3 pos; 
+	glm::vec3 angVel;
 	float area;
 	float mass;
 	float cd;
