@@ -5,7 +5,7 @@
 
 struct Bow
 {
-	float mb;
+	float mass;
 	float c;
 	float F;
 	float e;

@@ -19,7 +19,7 @@ void Physics::update(float dt)
 	if (time > 1.f/UPDATE_FREQUENCY)
 	{
 		for (unsigned int i = 0; i < this->projectiles.size(); i++)
-			updateProjectile(1.f/UPDATE_FREQUENCY, this->projectiles[i]);
+			updateProjectile(1.f/UPDATE_FREQUENCY * TIME_FACTOR, this->projectiles[i]);
 
 		time = 0.0f;
 	}
@@ -30,9 +30,9 @@ void Physics::addProjectile(Projectile * projectile)
 	this->projectiles.push_back(projectile);
 }
 
-void Physics::applyBowForce(Projectile * projectile, const Bow& bow, const glm::vec3 dir, const float& x)
+void Physics::applyBowForce(Projectile * projectile, const Bow* bow, const glm::vec3 dir, const float& x)
 {
-	projectile->vel = sqrt((bow.F * x * bow.e) / (projectile->mass * bow.mb * bow.c)) * glm::normalize(dir);
+	projectile->vel = sqrt((bow->F * x * bow->e) / (projectile->mass + bow->mass * bow->c)) * glm::normalize(dir);
 }
 
 void Physics::updateProjectile(float dt, Projectile* projectile)
@@ -46,10 +46,10 @@ void Physics::updateProjectile(float dt, Projectile* projectile)
 
 	glm::vec3 acc = (fdv + fgv) / projectile->mass;
 
-	projectile->pos += projectile->vel * dt;
 	projectile->vel += acc * dt;
+	projectile->pos += projectile->vel * dt;
 	static float t = 0.0f;
-	t += dt;
+	t += dt/ TIME_FACTOR;
 	if (t > 1.f) 
 	{ 
 		printf("fd: %f, v: %f\n", fd, glm::length(projectile->vel));
