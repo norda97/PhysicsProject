@@ -4,7 +4,7 @@
 #include "Physics.h"
 #include "Graphics.h"
 
-#define TIME_STEP_FACTOR 1.0f 
+#define TIME_STEP_FACTOR 0.05f 
 #define PI 3.14159265f
 
 #define RADIUS 1.0f
@@ -14,7 +14,7 @@ void constructArrow(Projectile& arrow)
 {
 	const float arrowHeadArea = 0.00034925f;
 	const float mass = 0.018f;
-	glm::vec3 startPos(RADIUS, 0.f, virtSize.y - 1.5f);
+	glm::vec3 startPos(RADIUS, 1.5f, 0.0f);
 	arrow = { glm::vec3(0.0f), startPos, {0.0f, 0.0f, 0.0f}, arrowHeadArea, mass, 0.04f };
 }
 
@@ -26,7 +26,7 @@ void constructBow(Bow& bow)
 glm::vec2 toScreenSpace(const glm::vec3& v, sf::RenderWindow& window)
 {
 	float x = v.x / virtSize.x * (float)window.getSize().x;
-	float y = v.z / virtSize.y * (float)window.getSize().y;
+	float y = (virtSize.y - v.y) / virtSize.y * (float)window.getSize().y;
 	return glm::vec2(x, y);
 }
 
@@ -52,8 +52,8 @@ int main()
 	phys.addProjectile(&arrow);
 	*/
 	float radius = 0.25f;
-	Projectile ball1 = { {0.0f, 0.0f, 5.0f},{virtSize.x/2.0f + 0.1f, 0.0f, radius}, {0.0f, 0.0f, 0.0f}, radius*radius*PI, 1.f, 0.4f };
-	Projectile ball2 = { {0.0f, 0.0f, -30.0f},{virtSize.x / 2.0f, 0.0f, virtSize.y - radius}, {0.0f, 0.0f, 0.0f}, radius * radius * PI, 1.f, 0.4f };
+	Projectile ball1 = { {0.0f, -5.0f, 0.0f},{virtSize.x/2.0f + 0.5f, virtSize.y - radius, 0.0f}, {0.0f, 0.0f, 0.0f}, radius*radius*PI, 1.f, 0.4f };
+	Projectile ball2 = { {0.0f, 30.0f, 0.0f},{virtSize.x / 2.0f, radius, 0.0f}, {0.0f, 0.0f, 0.0f}, radius * radius * PI, 1.f, 0.4f };
 	phys.addProjectile(&ball1);
 	phys.addProjectile(&ball2);
 	
@@ -88,13 +88,14 @@ int main()
 		glm::vec2 ball1Pos = toScreenSpace(ball1.pos, window);
 		glm::vec2 ball2Pos = toScreenSpace(ball2.pos, window); 
 		graphics.drawBall(ball1Pos, radiusW, sf::Color::Blue);
-		graphics.drawBall(ball2Pos, radiusW, sf::Color::Red);
+		graphics.drawRect(ball2Pos, radiusW*2.f, radiusW*2.f, sf::Color::Red);
+		//graphics.drawBall(ball2Pos, radiusW, sf::Color::Red);
 
-		glm::vec2 dir2(ball2.vel.x, ball2.vel.z);
-		//graphics.drawDbArrow(ball2Pos, dir2, 5.0f, 40.f, sf::Color::White);
+		glm::vec2 dir2(ball2.vel.x, -ball2.vel.y);
+		graphics.drawDbArrow(ball2Pos, dir2, 5.0f, 40.f, sf::Color::White);
 		
-		glm::vec2 dir1(ball1.vel.x, ball1.vel.z);
-		//graphics.drawDbArrow(ball1Pos, dir1, 5.0f, 40.f, sf::Color::White);
+		glm::vec2 dir1(ball1.vel.x, -ball1.vel.y);
+		graphics.drawDbArrow(ball1Pos, dir1, 5.0f, 40.f, sf::Color::White);
 		window.display();
 	}
 

@@ -26,6 +26,7 @@ private:
 	float calcAirResistence(float cd, float area, const glm::vec3& vel);
 
 	bool SphereSphereCollision(Projectile& p1, float r1, Projectile& p2, float r2, glm::vec3& loa);
+	bool SphereCuboidCollision(Projectile& p1, float radius, Projectile& p2, const glm::vec3& size, glm::vec3& loa);
 
 	void collisionResponse(Projectile& p1, Projectile& p2, float e, const glm::vec3& loa);
 

@@ -24,10 +24,11 @@ void Physics::update(float dt)
 		Projectile* p1 = this->projectiles[0];
 		Projectile* p2 = this->projectiles[1];
 		glm::vec3 loa;
-		if (SphereSphereCollision(*p1, 0.25f, *p2, 0.25f, loa))
+		//if(SphereSphereCollision(*p1, 0.25f, *p2, 0.25f, loa))
+		if (SphereCuboidCollision(*p1, .25f, *p2, { .25f, .25f, .25f }, loa))
 		{
 			printf("Collision!\n");
-			collisionResponse(*p1, *p2, 0.0f, loa);
+			//collisionResponse(*p1, *p2, 0.0f, loa);
 		}
 
 		time = 0.0f;
@@ -51,7 +52,7 @@ void Physics::updateProjectile(float dt, Projectile* projectile)
 	if (glm::length2(projectile->vel) > EPSILON)
 		ev = glm::normalize(projectile->vel);
 	glm::vec3 fdv = -fd * ev;
-	glm::vec3 fgv = glm::vec3(0, 0, this->grav * projectile->mass);
+	glm::vec3 fgv = glm::vec3(0.0f, -this->grav * projectile->mass, 0.0f);
 
 	glm::vec3 acc = (fdv + fgv) / projectile->mass;
 	
@@ -84,6 +85,62 @@ bool Physics::SphereSphereCollision(Projectile& p1, float r1, Projectile& p2, fl
 		p1.pos -= t * p1.vel;
 		p2.pos -= t * p2.vel;
 		loa = glm::normalize(p2.pos - p1.pos);
+		return true;
+	}
+	return false;
+}
+
+bool Physics::SphereCuboidCollision(Projectile & p1, float radius, Projectile & p2, const glm::vec3 & size, glm::vec3 & loa)
+{
+	
+	glm::vec3 right(1.0f, 0.0f, 0.0f);
+	glm::vec3 up(0.0f, 1.0f, 0.0f);
+	glm::vec3 forward(0.0f, 0.0f, 1.0f);
+
+	glm::vec3 normals[3] = {right, up, forward};
+
+	int collidedWith = 0;
+	int lastIndex = -1;
+	float minL = 100000.f;
+	for (unsigned int i = 0; i < 6; i++)
+	{
+		glm::vec3 normal = (i > 2 ? -1.f : 1.f) * normals[i%3];
+		glm::vec3 pointOnPlane = p2.pos + size[i%3]*normal;
+		glm::vec3 v = p1.pos - pointOnPlane;
+		float l = glm::dot(normal, v);
+		if (l > 0.0)
+		{
+			v = l * normal;
+			if (glm::length(v) <= radius)
+			{
+				collidedWith++;
+				if (abs(l) < minL)
+				{
+					minL = abs(l);
+					lastIndex = i;
+				}
+			}
+		}
+		else
+		{
+			collidedWith++;
+			// ?
+			if (abs(l) < minL)
+			{
+				minL = abs(l);
+				lastIndex = i;
+			}
+		}
+	}
+	if (collidedWith == 6)
+	{
+		printf("LastIndex: %d\n", lastIndex);
+		glm::vec3 normal = (lastIndex > 2 ? -1.f : 1.f) * normals[lastIndex % 3];
+		glm::vec3 pointOnPlane = p2.pos + size[lastIndex % 3] * normal;
+		glm::vec3 v = p1.pos - pointOnPlane;
+		float l = glm::dot(normal, v);
+		v = l * normal;
+
 		return true;
 	}
 	return false;

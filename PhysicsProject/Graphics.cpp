@@ -14,6 +14,15 @@ void Graphics::drawBall(const glm::vec2& pos, float radius, const sf::Color& col
 	window->draw(this->shape);
 }
 
+void Graphics::drawRect(const glm::vec2 & pos, float w, float h, const sf::Color & color)
+{
+	sf::RectangleShape shape(sf::Vector2f(w, h));
+	shape.setFillColor(color);
+	shape.setOrigin(w*.5f, h*.5f);
+	shape.setPosition(pos.x, pos.y);
+	window->draw(shape);
+}
+
 void Graphics::drawDbArrow(const glm::vec2 & pos, const glm::vec2 & dir, float factor, float max, const sf::Color& color)
 {
 	float l = glm::length(dir);
