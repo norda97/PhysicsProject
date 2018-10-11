@@ -7,7 +7,7 @@
 #define AIR_DENSITY 1.225f
 #define EPSILON 0.00001f
 #define UPDATE_FREQUENCY 60.f
-#define TIME_FACTOR 1.0f
+#define TIME_FACTOR 0.5f
 
 class Physics
 {
@@ -25,8 +25,10 @@ private:
 	void updateProjectile(float dt, Projectile* projectile);
 	float calcAirResistence(float cd, float area, const glm::vec3& vel);
 
-	bool SphereSphereCollision(Projectile& p1, float r1, Projectile& p2, float r2, glm::vec3& loa);
-	bool SphereCuboidCollision(Projectile& p1, float radius, Projectile& p2, const glm::vec3& size, glm::vec3& loa);
+	glm::vec3 getClosestPointOBB(const glm::vec3& p, const glm::vec3& c, const glm::vec3& size);
+
+	bool SphereSphereCollision(Projectile& p1, Projectile& p2, glm::vec3& loa);
+	bool SphereCuboidCollision(Projectile& sphere, Projectile& cuboid, glm::vec3& loa);
 
 	void collisionResponse(Projectile& p1, Projectile& p2, float e, const glm::vec3& loa);
 

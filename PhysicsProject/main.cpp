@@ -4,7 +4,7 @@
 #include "Physics.h"
 #include "Graphics.h"
 
-#define TIME_STEP_FACTOR 0.05f 
+#define TIME_STEP_FACTOR 0.25f 
 #define PI 3.14159265f
 
 #define RADIUS 1.0f
@@ -12,10 +12,11 @@ const glm::vec2 virtSize(10.0f, 10.0f);
 
 void constructArrow(Projectile& arrow)
 {
+	/*
 	const float arrowHeadArea = 0.00034925f;
 	const float mass = 0.018f;
-	glm::vec3 startPos(RADIUS, 1.5f, 0.0f);
-	arrow = { glm::vec3(0.0f), startPos, {0.0f, 0.0f, 0.0f}, arrowHeadArea, mass, 0.04f };
+	glm::vec3 startPos(RADIUS, 1.5f, 0.0f); 
+	arrow = { glm::vec3(0.0f), startPos, {0.0f, 0.0f, 0.0f}, arrowHeadArea, mass, 0.04f, Sphere(0.25f)};*/
 }
 
 void constructBow(Bow& bow)
@@ -37,6 +38,12 @@ glm::vec2 toScreenSpace(const glm::vec2& v, sf::RenderWindow& window)
 	return glm::vec2(x, y);
 }
 
+float toScreenSpace(float v, sf::RenderWindow& window, unsigned int sideIndex = 0)
+{
+	glm::vec2 w(window.getSize().x, window.getSize().y);
+	return v / virtSize[sideIndex] * (float)(w[sideIndex]);
+}
+
 int main()
 {
 	Physics phys;
@@ -52,8 +59,11 @@ int main()
 	phys.addProjectile(&arrow);
 	*/
 	float radius = 0.25f;
-	Projectile ball1 = { {0.0f, -5.0f, 0.0f},{virtSize.x/2.0f + 0.5f, virtSize.y - radius, 0.0f}, {0.0f, 0.0f, 0.0f}, radius*radius*PI, 1.f, 0.4f };
-	Projectile ball2 = { {0.0f, 30.0f, 0.0f},{virtSize.x / 2.0f, radius, 0.0f}, {0.0f, 0.0f, 0.0f}, radius * radius * PI, 1.f, 0.4f };
+	Sphere sphere(0.25f);
+	Cuboid cuboid({ 0.1f, 0.3f, 0.1f });
+
+	Projectile ball1 = { {0.0f, -5.0f, 0.0f},{virtSize.x/2.0f + 0.15f, virtSize.y - radius, 0.0f}, {0.0f, 0.0f, 0.0f}, radius*radius*PI, 1.f, 0.4f, &sphere};
+	Projectile ball2 = { {0.0f, 30.0f, 0.0f},{virtSize.x / 2.0f, radius, 0.0f}, {0.0f, 0.0f, 0.0f}, radius * radius * PI, 1.f, 0.4f, &cuboid};
 	phys.addProjectile(&ball1);
 	phys.addProjectile(&ball2);
 	
@@ -87,8 +97,9 @@ int main()
 		window.clear(); 
 		glm::vec2 ball1Pos = toScreenSpace(ball1.pos, window);
 		glm::vec2 ball2Pos = toScreenSpace(ball2.pos, window); 
-		graphics.drawBall(ball1Pos, radiusW, sf::Color::Blue);
-		graphics.drawRect(ball2Pos, radiusW*2.f, radiusW*2.f, sf::Color::Red);
+		graphics.drawBall(ball1Pos, toScreenSpace(((Sphere*)ball1.geometry)->radius, window, 0), sf::Color::Blue);
+		graphics.drawRect(ball2Pos, toScreenSpace(((Cuboid*)ball2.geometry)->dim[0], window, 0)*2.f, 
+			toScreenSpace(((Cuboid*)ball2.geometry)->dim[1], window, 1)*2.f, sf::Color::Red);
 		//graphics.drawBall(ball2Pos, radiusW, sf::Color::Red);
 
 		glm::vec2 dir2(ball2.vel.x, -ball2.vel.y);

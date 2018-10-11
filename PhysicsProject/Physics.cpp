@@ -25,10 +25,11 @@ void Physics::update(float dt)
 		Projectile* p2 = this->projectiles[1];
 		glm::vec3 loa;
 		//if(SphereSphereCollision(*p1, 0.25f, *p2, 0.25f, loa))
-		if (SphereCuboidCollision(*p1, .25f, *p2, { .25f, .25f, .25f }, loa))
+
+		if (SphereCuboidCollision(*p1, *p2, loa))
 		{
 			printf("Collision!\n");
-			//collisionResponse(*p1, *p2, 0.0f, loa);
+			collisionResponse(*p1, *p2, 1.0f, loa);
 		}
 
 		time = 0.0f;
@@ -72,10 +73,36 @@ float Physics::calcAirResistence(float cd, float area, const glm::vec3 & vel)
 	return 0.5f * AIR_DENSITY * area * cd * glm::length2(vel);
 }
 
-bool Physics::SphereSphereCollision(Projectile& p1, float r1, Projectile& p2, float r2, glm::vec3& loa)
+glm::vec3 Physics::getClosestPointOBB(const glm::vec3 & p, const glm::vec3 & c, const glm::vec3 & size)
+{
+	// TODO: Put this in Cuboid!!!
+	glm::vec3 right(1.0f, 0.0f, 0.0f);
+	glm::vec3 up(0.0f, 1.0f, 0.0f);
+	glm::vec3 forward(0.0f, 0.0f, 1.0f);
+	glm::vec3 normals[3] = { right, up, forward };
+
+	glm::vec3 d = p - c;
+	glm::vec3 q = c;
+	for (unsigned int i = 0; i < 3; i++)
+	{
+		glm::vec3 extension = normals[i] * size[i];
+
+		float dist = glm::dot(d, normals[i]);
+		if (dist > glm::length(extension))
+			dist = glm::length(extension);
+
+		if (dist < -glm::length(extension))
+			dist = -glm::length(extension);
+	
+		q += dist * normals[i];
+	}
+	return q;
+}
+
+bool Physics::SphereSphereCollision(Projectile& p1, Projectile& p2, glm::vec3& loa)
 {
 	glm::vec3 p1p2 = p2.pos - p1.pos;
-	const float d = r1 + r2;
+	const float d = ((Sphere*)p1.geometry)->radius + ((Sphere*)p2.geometry)->radius;
 	float l = glm::length(p1p2);
 	if (l <= d)
 	{
@@ -90,7 +117,7 @@ bool Physics::SphereSphereCollision(Projectile& p1, float r1, Projectile& p2, fl
 	return false;
 }
 
-bool Physics::SphereCuboidCollision(Projectile & p1, float radius, Projectile & p2, const glm::vec3 & size, glm::vec3 & loa)
+bool Physics::SphereCuboidCollision(Projectile & sphere, Projectile & cuboid, glm::vec3 & loa)
 {
 	
 	glm::vec3 right(1.0f, 0.0f, 0.0f);
@@ -99,14 +126,17 @@ bool Physics::SphereCuboidCollision(Projectile & p1, float radius, Projectile & 
 
 	glm::vec3 normals[3] = {right, up, forward};
 
+	glm::vec3 size = ((Cuboid*)cuboid.geometry)->dim;
+	float radius = ((Sphere*)sphere.geometry)->radius;
+
 	int collidedWith = 0;
 	int lastIndex = -1;
 	float minL = 100000.f;
 	for (unsigned int i = 0; i < 6; i++)
 	{
 		glm::vec3 normal = (i > 2 ? -1.f : 1.f) * normals[i%3];
-		glm::vec3 pointOnPlane = p2.pos + size[i%3]*normal;
-		glm::vec3 v = p1.pos - pointOnPlane;
+		glm::vec3 pointOnPlane = cuboid.pos + size[i%3]*normal;
+		glm::vec3 v = sphere.pos - pointOnPlane;
 		float l = glm::dot(normal, v);
 		if (l > 0.0)
 		{
@@ -134,18 +164,13 @@ bool Physics::SphereCuboidCollision(Projectile & p1, float radius, Projectile & 
 	}
 	if (collidedWith == 6)
 	{
-		printf("LastIndex: %d\n", lastIndex);
-		glm::vec3 normal = (lastIndex > 2 ? -1.f : 1.f) * normals[lastIndex % 3];
-		glm::vec3 pointOnPlane = p2.pos + size[lastIndex % 3] * normal;
-		glm::vec3 v = p1.pos - pointOnPlane;
-		float l = glm::dot(normal, v);
-		v = l * normal;
-
+		glm::vec3 point = getClosestPointOBB(sphere.pos, cuboid.pos, size);
+		loa = glm::normalize(point- sphere.pos);
 		return true;
 	}
 	return false;
 }
-
+// TODO: Not working if mc not align with loa.
 void Physics::collisionResponse(Projectile & p1, Projectile & p2, float e, const glm::vec3 & loa)
 {
 	float v1rho = glm::dot(loa, p1.vel);
