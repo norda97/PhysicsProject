@@ -3,46 +3,12 @@
 
 #include "Physics.h"
 #include "Graphics.h"
+#include "Archer.h"
 
-#define TIME_STEP_FACTOR 0.25f 
+#define TIME_STEP_FACTOR 1.0f 
 #define PI 3.14159265f
 
-#define RADIUS 1.0f
-const glm::vec2 virtSize(10.0f, 10.0f);
-
-void constructArrow(Projectile& arrow)
-{
-	/*
-	const float arrowHeadArea = 0.00034925f;
-	const float mass = 0.018f;
-	glm::vec3 startPos(RADIUS, 1.5f, 0.0f); 
-	arrow = { glm::vec3(0.0f), startPos, {0.0f, 0.0f, 0.0f}, arrowHeadArea, mass, 0.04f, Sphere(0.25f)};*/
-}
-
-void constructBow(Bow& bow)
-{
-	bow = { 1.25f, 0.07f, 470.f, 0.9f };
-}
-
-glm::vec2 toScreenSpace(const glm::vec3& v, sf::RenderWindow& window)
-{
-	float x = v.x / virtSize.x * (float)window.getSize().x;
-	float y = (virtSize.y - v.y) / virtSize.y * (float)window.getSize().y;
-	return glm::vec2(x, y);
-}
-
-glm::vec2 toScreenSpace(const glm::vec2& v, sf::RenderWindow& window)
-{
-	float x = v.x / virtSize.x * (float)window.getSize().x;
-	float y = v.y / virtSize.y * (float)window.getSize().y;
-	return glm::vec2(x, y);
-}
-
-float toScreenSpace(float v, sf::RenderWindow& window, unsigned int sideIndex = 0)
-{
-	glm::vec2 w(window.getSize().x, window.getSize().y);
-	return v / virtSize[sideIndex] * (float)(w[sideIndex]);
-}
+#include "Utils.h"
 
 int main()
 {
@@ -62,11 +28,14 @@ int main()
 	Sphere sphere(0.25f);
 	Cuboid cuboid({ 0.1f, 0.3f, 0.1f });
 
-	Projectile ball1 = { {0.0f, -5.0f, 0.0f},{virtSize.x/2.0f + 0.15f, virtSize.y - radius, 0.0f}, {0.0f, 0.0f, 0.0f}, radius*radius*PI, 1.f, 0.4f, &sphere};
-	Projectile ball2 = { {0.0f, 30.0f, 0.0f},{virtSize.x / 2.0f, radius, 0.0f}, {0.0f, 0.0f, 0.0f}, radius * radius * PI, 1.f, 0.4f, &cuboid};
+	Projectile ball1 = { {0.0f, -5.0f, 0.0f},{virtSize.x/2.0f, virtSize.y - radius, 0.0f}, {0.0f, 0.0f, 0.0f}, radius*radius*PI, 1.f, 0.4f, &sphere};
+	Projectile ball2 = { {0.0f, 0.0f, 0.0f},{virtSize.x / 2.0f, virtSize.y - radius*4.f, 0.0f}, {0.0f, 0.0f, 0.0f}, radius * radius * PI, 1.f, 0.4f, &sphere};
 	phys.addProjectile(&ball1);
 	phys.addProjectile(&ball2);
 	
+	Archer archer;
+	Archer archer2({virtSize.x, 1.5f, 0.0f});
+
 	glm::vec2 r = toScreenSpace(glm::vec2(radius, radius), window);
 	float radiusW = r.x;
 	Graphics graphics(&window);
@@ -97,16 +66,39 @@ int main()
 		window.clear(); 
 		glm::vec2 ball1Pos = toScreenSpace(ball1.pos, window);
 		glm::vec2 ball2Pos = toScreenSpace(ball2.pos, window); 
-		graphics.drawBall(ball1Pos, toScreenSpace(((Sphere*)ball1.geometry)->radius, window, 0), sf::Color::Blue);
-		graphics.drawRect(ball2Pos, toScreenSpace(((Cuboid*)ball2.geometry)->dim[0], window, 0)*2.f, 
-			toScreenSpace(((Cuboid*)ball2.geometry)->dim[1], window, 1)*2.f, sf::Color::Red);
-		//graphics.drawBall(ball2Pos, radiusW, sf::Color::Red);
+		static float angle = 0.0f;
+		angle += ball1.angVel.z*dt*TIME_STEP_FACTOR;
+		graphics.drawBall(ball1Pos, toScreenSpace(((Sphere*)ball1.geometry)->radius, window, 0), sf::Color::Blue, angle);
+		//graphics.drawRect(ball2Pos, toScreenSpace(((Cuboid*)ball2.geometry)->dim[0], window, 0)*2.f, 
+		//	toScreenSpace(((Cuboid*)ball2.geometry)->dim[1], window, 1)*2.f, sf::Color::Red);
+		static float angle2 = 0.0f;
+		angle2 += ball2.angVel.z*dt*TIME_STEP_FACTOR;
+		graphics.drawBall(ball2Pos, toScreenSpace(((Sphere*)ball2.geometry)->radius, window, 0), sf::Color::Red, angle2);
 
 		glm::vec2 dir2(ball2.vel.x, -ball2.vel.y);
 		graphics.drawDbArrow(ball2Pos, dir2, 5.0f, 40.f, sf::Color::White);
 		
 		glm::vec2 dir1(ball1.vel.x, -ball1.vel.y);
 		graphics.drawDbArrow(ball1Pos, dir1, 5.0f, 40.f, sf::Color::White);
+		
+		archer.processInput(window, phys, dt);
+		archer2.processInput(window, phys, dt);
+
+		std::vector<Projectile*>& arrows = archer.getArrows();
+		for (Projectile* arrow : arrows)
+			graphics.drawBall(toScreenSpace(arrow->pos, window), 
+				toScreenSpace(((Sphere*)arrow->geometry)->radius, window, 0), sf::Color::Cyan);
+
+		std::vector<Projectile*>& arrows2 = archer2.getArrows();
+		for (Projectile* arrow : arrows2)
+			graphics.drawBall(toScreenSpace(arrow->pos, window),
+				toScreenSpace(((Sphere*)arrow->geometry)->radius, window, 0), sf::Color::Cyan);
+
+		graphics.drawDbArrow(toScreenSpace(archer.getPos(), window), 
+			glm::vec2(archer.getDir().x, -archer.getDir().y), 10.f + archer.getX(), 40.f);
+		graphics.drawDbArrow(toScreenSpace(archer2.getPos(), window),
+			glm::vec2(archer2.getDir().x, -archer2.getDir().y), 10.f + archer2.getX(), 40.f);
+		
 		window.display();
 	}
 

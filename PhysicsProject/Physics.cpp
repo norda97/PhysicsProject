@@ -19,19 +19,33 @@ void Physics::update(float dt)
 	if (time > 1.f/UPDATE_FREQUENCY)
 	{
 		for (unsigned int i = 0; i < this->projectiles.size(); i++)
-			updateProjectile(1.f / UPDATE_FREQUENCY * TIME_FACTOR, this->projectiles[i]);
-
+			updateProjectile(1.f / UPDATE_FREQUENCY * TIME_FACTOR, this->projectiles[i], i);
+		
+		for (unsigned int i = 0; i < this->projectiles.size(); i++)
+		{
+			for (unsigned int j = i+1; j < this->projectiles.size(); j++)
+			{
+				Projectile* p1 = this->projectiles[i];
+				Projectile* p2 = this->projectiles[j];
+				glm::vec3 loa;
+				if (SphereSphereCollision(*p1, *p2, loa))
+				{
+					printf("Collision!\n");
+					collisionResponse(*p1, *p2, 1.0f, loa);
+				}
+			}
+		}
+		/*
 		Projectile* p1 = this->projectiles[0];
 		Projectile* p2 = this->projectiles[1];
 		glm::vec3 loa;
-		//if(SphereSphereCollision(*p1, 0.25f, *p2, 0.25f, loa))
-
-		if (SphereCuboidCollision(*p1, *p2, loa))
+		if(SphereSphereCollision(*p1, *p2, loa))
+		//if (SphereCuboidCollision(*p1, *p2, loa))
 		{
 			printf("Collision!\n");
 			collisionResponse(*p1, *p2, 1.0f, loa);
-		}
-
+		}*/
+		
 		time = 0.0f;
 	}
 }
@@ -46,7 +60,7 @@ void Physics::applyBowForce(Projectile * projectile, const Bow* bow, const glm::
 	projectile->vel = sqrt((bow->F * x * bow->e) / (projectile->mass + bow->mass * bow->c)) * glm::normalize(dir);
 }
 
-void Physics::updateProjectile(float dt, Projectile* projectile)
+void Physics::updateProjectile(float dt, Projectile* projectile, unsigned int i)
 {
 	float fd = calcAirResistence(projectile->cd, projectile->area, projectile->vel);
 	glm::vec3 ev(0.0f);
@@ -63,7 +77,7 @@ void Physics::updateProjectile(float dt, Projectile* projectile)
 	t += dt/ TIME_FACTOR;
 	if (t > 1.f) 
 	{ 
-		printf("fd: %f, v: %f\n", fd, glm::length(projectile->vel));
+		printf("[%d]fd: %f, v: %f\n", i, fd, glm::length(projectile->vel));
 		t = 0.0f;
 	}
 }
@@ -170,7 +184,7 @@ bool Physics::SphereCuboidCollision(Projectile & sphere, Projectile & cuboid, gl
 	}
 	return false;
 }
-// TODO: Not working if mc not align with loa.
+// TODO: Not realistic if mc not align with loa.
 void Physics::collisionResponse(Projectile & p1, Projectile & p2, float e, const glm::vec3 & loa)
 {
 	float v1rho = glm::dot(loa, p1.vel);
@@ -185,19 +199,67 @@ void Physics::collisionResponse(Projectile & p1, Projectile & p2, float e, const
 	B = (1.f + e)*p1.mass / totalMass;
 	float u2rho = A * v2rho + B * v1rho;
 
+	glm::vec3 preVel1 = p1.vel;
+	glm::vec3 preVel2 = p2.vel;
+
 	// TODO: Add friction and angular velocity.
-	p1.vel += (u1rho - v1rho)*loa;
-	p2.vel += (u2rho - v2rho)*loa;
+	float dv1 = u1rho - v1rho;
+	float dv2 = u2rho - v2rho;
+	p1.vel += dv1*loa;
+	p2.vel += dv2*loa;
 
 	// Avoid unecessary collision.
 	p1.pos += glm::normalize(p1.vel)*0.1f;
 	p2.pos += glm::normalize(p2.vel)*0.1f;
 
-	// Angular velocity
-	/*float friction = 0.03;
-	float radius = 2;
-	A = (p1.mass * radius * friction * (u1rho - v1rho)) / 0.4*p1.mass*radius*radius;
-	glm::vec3 en = glm::cross(loa, )
-	p1.angVel = 
-	*/
+	glm::vec3 er = loa;
+	glm::vec3 edv = glm::normalize(preVel2-preVel1);
+	glm::vec3 edvLoaCross = glm::cross(edv, loa);
+	if (glm::length2(edvLoaCross) > EPSILON)
+	{
+		glm::vec3 en = glm::cross(glm::normalize(edvLoaCross), loa);
+
+		// Angular velocity
+		if (p1.geometry->type == Geometry::Sphere)
+			p1.angVel += angVelSphere(p1, dv1, 0.1f, er, en);
+		//else if (p1.geometry->type == Geometry::Cuboid)
+		//	p1.angVel = angVelCuboid(p1, preVel1);
+
+		if (p2.geometry->type == Geometry::Sphere)
+			p2.angVel += angVelSphere(p2, dv2, 0.1f, er, -en);
+	}
+	printf("av1: %f, av2: %f\n", p1.angVel.z, p2.angVel.z);
+}
+
+glm::vec3 Physics::angVelSphere(Projectile & p, float dv, float friction, const glm::vec3& er, const glm::vec3& en)
+{
+	Sphere* sphere = (Sphere*)p.geometry;
+	sphere->inertia = .4f*p.mass*sphere->radius*sphere->radius;
+	return angVelCalc(p, dv, friction, er, en)/sphere->inertia;
+}
+/*
+glm::vec3 Physics::angVelCuboid(Projectile & p, const glm::vec3& preVel, float friction, const glm::vec3& er, const glm::vec3& en)
+{
+
+	Cuboid* cuboid = (Cuboid*)p.geometry;
+	// TODO: FIX THIS so it is not axis aligned.
+	float ix = inertiaCuboid(p.mass, cuboid->dim.y, cuboid->dim.z);
+	float iy = inertiaCuboid(p.mass, cuboid->dim.x, cuboid->dim.z);
+	float iz = inertiaCuboid(p.mass, cuboid->dim.x, cuboid->dim.y);
+	cuboid->inertia = glm::vec3(ix, iy, iz);
+	glm::vec3 vel = angVelCalc(p, preVel, friction, er, en);
+	vel.x /= ix;
+	vel.y /= iy;
+	vel.z /= iz;
+	return vel;
+}*/
+
+float Physics::inertiaCuboid(float m, float a, float b)
+{
+	return m * (a*a + b*b) / 12.f;
+}
+
+glm::vec3 Physics::angVelCalc(Projectile & p, float dv, float friction, const glm::vec3 & er, const glm::vec3 & en)
+{
+	return (p.mass*((Sphere*)p.geometry)->radius*friction*dv) * glm::cross(en, er);
 }

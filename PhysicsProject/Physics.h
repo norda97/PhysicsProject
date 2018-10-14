@@ -22,7 +22,7 @@ public:
 	void applyBowForce(Projectile* projectile, const Bow* bow, const glm::vec3 dir, const float& x);
 
 private:
-	void updateProjectile(float dt, Projectile* projectile);
+	void updateProjectile(float dt, Projectile* projectile, unsigned int i);
 	float calcAirResistence(float cd, float area, const glm::vec3& vel);
 
 	glm::vec3 getClosestPointOBB(const glm::vec3& p, const glm::vec3& c, const glm::vec3& size);
@@ -31,6 +31,13 @@ private:
 	bool SphereCuboidCollision(Projectile& sphere, Projectile& cuboid, glm::vec3& loa);
 
 	void collisionResponse(Projectile& p1, Projectile& p2, float e, const glm::vec3& loa);
+	
+	glm::vec3 angVelSphere(Projectile& p, float dv, float friction, const glm::vec3& er, const glm::vec3& en);
+	//glm::vec3 angVelCuboid(Projectile& p, const glm::vec3& preVel, float friction, const glm::vec3& er, const glm::vec3& en);
+
+	float inertiaCuboid(float m, float a, float b);
+
+	glm::vec3 angVelCalc(Projectile& p, float dv, float friction, const glm::vec3& er, const glm::vec3& en);
 
 	std::vector<Projectile*> projectiles;
 	float grav;

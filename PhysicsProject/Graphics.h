@@ -9,7 +9,7 @@ class Graphics
 {
 public:
 	Graphics(sf::RenderWindow* window);
-	void drawBall(const glm::vec2& pos, float radius = 1.0f, const sf::Color& color = sf::Color::White);
+	void drawBall(const glm::vec2& pos, float radius = 1.0f, const sf::Color& color = sf::Color::White, float angle = 0.0f);
 	void drawRect(const glm::vec2& pos, float w, float h, const sf::Color& color = sf::Color::White);
 	void drawDbArrow(const glm::vec2& pos, const glm::vec2 & dir, float factor, float max, const sf::Color& color = sf::Color::White);
 

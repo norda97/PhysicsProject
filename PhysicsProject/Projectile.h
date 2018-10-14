@@ -13,12 +13,14 @@ struct Sphere : public Geometry
 {
 	Sphere(float radius) : Geometry(Type::Sphere) { this->radius = radius; }
 	float radius;
+	float inertia;
 };
 
 struct Cuboid : public Geometry
 {
 	Cuboid(const glm::vec3& dim) : Geometry(Type::Cuboid) { this->dim = dim; }
 	glm::vec3 dim;
+	glm::vec3 inertia;
 };
 
 struct Bow

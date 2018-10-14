@@ -5,13 +5,20 @@ Graphics::Graphics(sf::RenderWindow * window)
 	this->window = window;
 }
 
-void Graphics::drawBall(const glm::vec2& pos, float radius, const sf::Color& color)
+void Graphics::drawBall(const glm::vec2& pos, float radius, const sf::Color& color, float angle)
 {
 	this->shape.setOrigin(radius, radius);
 	this->shape.setFillColor(color);
 	this->shape.setRadius(radius);
 	this->shape.setPosition(pos.x, pos.y);
 	window->draw(this->shape);
+	float x = cos(angle)*radius + pos.x;
+	float y = sin(angle)*radius + pos.y;
+	sf::Vertex vertices[2] = { sf::Vertex({pos.x, pos.y}), sf::Vertex({x, y}) };
+	sf::Color colorInv(sf::Color::White.r-color.r, sf::Color::White.g-color.g, sf::Color::White.b-color.b);
+	vertices[0].color = colorInv;
+	vertices[1].color = colorInv;
+	window->draw(vertices, 2, sf::Lines);
 }
 
 void Graphics::drawRect(const glm::vec2 & pos, float w, float h, const sf::Color & color)
