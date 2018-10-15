@@ -6,7 +6,7 @@
 
 #include "Utils.h"
 
-Archer::Archer(const glm::vec3& pos) : sphere(0.25f)
+Archer::Archer(const glm::vec3& pos)
 {
 	// Construct bow
 	this->bow.mass = 1.25f;
@@ -18,15 +18,20 @@ Archer::Archer(const glm::vec3& pos) : sphere(0.25f)
 	this->dir = glm::vec3(1.f, 1.f, 0.0f);
 	this->dir = glm::normalize(this->dir);
 
-	this->strength = this->bow.F * 2;
+	this->x = 0.0f;
+	this->fullDraw = 0.9785f;
+	this->isFullDrawn = false;
+	this->energy = 0.3f;
 
 	if (glm::length2(pos) < EPSILON)
 		this->pos = glm::vec3(0.0f, 1.5f, 0.0f);
 	else
 		this->pos = pos;
 
-	this->x = 0.0f;
 	this->activated = true;
+
+	this->lineSegment.d = 0.7f;
+	this->lineSegment.mcFactor = 0.5f;
 }
 
 Archer::~Archer()
@@ -39,7 +44,7 @@ Archer::~Archer()
 Projectile* Archer::addArrow()
 {
 	const float arrowHeadArea = 0.00034925f;
-	const float mass = 4.f;//0.018f;
+	const float mass = 0.018f;
 	
 	// Construct arrow
 	Projectile* arrow = new Projectile();
@@ -49,15 +54,11 @@ Projectile* Archer::addArrow()
 	arrow->area = arrowHeadArea;
 	arrow->mass = mass;
 	arrow->cd = 0.04f;
-	arrow->geometry = &sphere;
+	arrow->geometry = &lineSegment;
+	arrow->dir = this->dir;
 	
 	this->arrows.push_back(arrow);
 	return arrow;
-}
-
-void Archer::drawArrow(float x)
-{
-	this->x += x;
 }
 
 void Archer::shootArrow(Physics & physics)
@@ -65,6 +66,8 @@ void Archer::shootArrow(Physics & physics)
 	Projectile* arrow = addArrow();
 	physics.applyBowForce(arrow, &this->bow, this->dir, this->x);
 	physics.addProjectile(arrow);
+	this->isFullDrawn = false;
+	this->energy = 0.3f;
 }
 
 void Archer::processInput(sf::RenderWindow& window, Physics& physics, float dt)
@@ -81,7 +84,12 @@ void Archer::processInput(sf::RenderWindow& window, Physics& physics, float dt)
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space))
 	{
 		this->activated = false;
-		drawArrow(0.1f);
+		float dx = 1.0f;
+		if (this->isFullDrawn)
+			this->energy -= dt;
+		if (this->energy < 0.0f)
+			dx = -dx;
+		drawArrow(dx*dt);
 	}
 	else if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space) && !this->activated)
 	{
@@ -104,6 +112,19 @@ glm::vec3 Archer::getDir() const
 float Archer::getX() const
 {
 	return this->x;
+}
+
+void Archer::drawArrow(float x)
+{
+	this->x += x;
+	if (this->x > this->fullDraw)
+	{
+		this->x = this->fullDraw;
+		if(!this->isFullDrawn)
+			this->isFullDrawn = true;
+	}
+	if (this->x < 0.0f)
+		this->x = 0.0f;
 }
 
 std::vector<Projectile*>& Archer::getArrows()

@@ -12,7 +12,6 @@ public:
 	Archer(const glm::vec3& pos = glm::vec3(0.0f));
 	~Archer();
 
-	void drawArrow(float x);
 	void shootArrow(Physics& physics);
 
 	void processInput(sf::RenderWindow& window, Physics & physics, float dt);
@@ -24,10 +23,13 @@ public:
 	std::vector<Projectile*>& getArrows();
 
 private:
+	void drawArrow(float x);
 	Projectile* addArrow();
 
 	float x;
-	float strength;
+	float fullDraw;
+	bool isFullDrawn;
+	float energy;
 	glm::vec3 dir;
 	glm::vec3 pos;
 
@@ -35,7 +37,7 @@ private:
 	std::vector<Projectile*> arrows;
 
 	bool activated;
-	Sphere sphere;
+	LineSegment lineSegment;
 };
 
 #endif
