@@ -31,7 +31,7 @@ Archer::Archer(const glm::vec3& pos)
 	this->activated = true;
 
 	this->lineSegment.d = 0.7f;
-	this->lineSegment.mcFactor = 0.5f;
+	this->lineSegment.mcFactor = 0.7f; // Procent
 }
 
 Archer::~Archer()

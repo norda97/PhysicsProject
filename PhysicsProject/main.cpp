@@ -5,7 +5,7 @@
 #include "Graphics.h"
 #include "Archer.h"
 
-#define TIME_STEP_FACTOR 0.1f 
+#define TIME_STEP_FACTOR 1.0f 
 #define PI 3.14159265f
 
 #include "Utils.h"
@@ -26,19 +26,26 @@ int main()
 	*/
 	float radius = 0.4f;
 	Sphere sphere(0.4f);
-	Cuboid cuboid({ 0.3f, 0.1, 0.1f });
+	Cuboid cuboid({ virtSize.x/2.f, 0.2f, virtSize.x/2.f });
 
-	Projectile ball1 = { {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f},{virtSize.x/2.0f, virtSize.y - radius, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, radius*radius*PI, 5.0f, 0.4f, &sphere};
-	Projectile ball2 = { {0.0f, 0.0f, 0.0f} ,{0.0f, 20.0f, 0.0f},{virtSize.x - radius, radius*4.f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 0.2f*0.6*0.2f, 5.f, 2.05f, &cuboid };
-	phys.addProjectile(&ball1);
-	phys.addProjectile(&ball2);
-	/*
-	Cuboid floorCuboid({ virtSize.x / 2.0f, 0.25f, 0.25f });
+	Projectile ball1 = { {0.0f, 0.0f, 0.0f}, {0.0f, -5.0f, 0.0f},{virtSize.x/2.0f, virtSize.y - radius, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, radius*radius*PI, 5.0f, 0.4f, &sphere};
 	Projectile floor;
-	floor.pos = { virtSize.x / 2.0f, -0.25f, 0.0f};
-	floor.geometry = &floorCuboid;
+	floor.pos = {virtSize.x/2.f, 0.0f, 0.0f};
+	floor.mass = 100000.f;
+	floor.geometry = &cuboid;
+	floor.hasPhysics = false;
+	
+	Cuboid cuboid2({ 0.2f, virtSize.y/2.f, virtSize.x / 2.f });
+	Projectile wall;
+	wall.pos = { virtSize.x, virtSize.y/2.f, 0.0f };
+	wall.mass = 100000.f;
+	wall.geometry = &cuboid2;
+	wall.hasPhysics = false;
+
+	phys.addProjectile(&ball1);
 	phys.addProjectile(&floor);
-	*/
+	phys.addProjectile(&wall);
+	
 	Archer archer;
 
 	glm::vec2 r = toScreenSpace(glm::vec2(radius, radius), window);
@@ -70,18 +77,18 @@ int main()
 
 		window.clear(); 
 		glm::vec2 ball1Pos = toScreenSpace(ball1.pos, window);
-		glm::vec2 ball2Pos = toScreenSpace(ball2.pos, window); 
 
 		// TODO: Angle.z should be negated if want correct direction, I don´t know how the other should be yet. Has to do with converting from virtual coordinate to screen coortinate, because of change in y.
-		//printf("Ang: %f\n", -ball2.ang.z);
 		graphics.drawBall(ball1Pos, toScreenSpace(((Sphere*)ball1.geometry)->radius, window, 0), sf::Color::Blue, -ball1.ang.z);
-		graphics.drawRect(ball2Pos, toScreenSpace(((Cuboid*)ball2.geometry)->dim[0], window, 0)*2.f, 
-			toScreenSpace(((Cuboid*)ball2.geometry)->dim[1], window, 1)*2.f, sf::Color::Red, -ball2.ang.z);
-		//graphics.drawBall(ball2Pos, toScreenSpace(((Sphere*)ball2.geometry)->radius, window, 0), sf::Color::Red, angle2);
 
-		glm::vec2 dir2(ball2.vel.x, -ball2.vel.y);
-		graphics.drawDbArrow(ball2Pos, dir2, 5.0f, 40.f, sf::Color::White);
+		glm::vec2 floorPos = toScreenSpace(floor.pos, window); 
+		graphics.drawRect(floorPos, toScreenSpace(((Cuboid*)floor.geometry)->dim[0], window, 0)*2.f, 
+			toScreenSpace(((Cuboid*)floor.geometry)->dim[1], window, 1)*2.f, sf::Color(0x11DD11FF));
 		
+		glm::vec2 wallPos = toScreenSpace(wall.pos, window);
+		graphics.drawRect(wallPos, toScreenSpace(((Cuboid*)wall.geometry)->dim[0], window, 0)*2.f,
+			toScreenSpace(((Cuboid*)wall.geometry)->dim[1], window, 1)*2.f, sf::Color(0xBBBBBBFF));
+
 		glm::vec2 dir1(ball1.vel.x, -ball1.vel.y);
 		graphics.drawDbArrow(ball1Pos, dir1, 5.0f, 40.f, sf::Color::White);
 		

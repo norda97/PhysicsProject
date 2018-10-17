@@ -3,12 +3,14 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm\gtx\norm.hpp"
 
+#include "Utils.h"
+
 #define IS_TYPE(x, t) (x->geometry->type == Geometry::t)
 
 Physics::Physics()
 {
 	this->grav = 9.82;
-	this->penetrationMomentum = 0.0f;
+	this->penetrationMomentum = 0.6f;
 }
 
 Physics::~Physics()
@@ -19,20 +21,20 @@ void Physics::update(float dt)
 {
 	static float time = 0.0f;
 	time += dt;
-	if (time > 1.f/UPDATE_FREQUENCY)
+	if (time > 1.f / UPDATE_FREQUENCY)
 	{
 		//Remove if outside screen
 
 		for (unsigned int i = 0; i < this->projectiles.size(); i++)
 			updateProjectile(1.f / UPDATE_FREQUENCY * TIME_FACTOR, this->projectiles[i], i);
-		
+
 		for (unsigned int i = 0; i < this->projectiles.size(); i++)
 		{
-			for (unsigned int j = i+1; j < this->projectiles.size(); j++)
+			for (unsigned int j = i + 1; j < this->projectiles.size(); j++)
 			{
 				Projectile* p1 = this->projectiles[i];
 				Projectile* p2 = this->projectiles[j];
-				if (p1->hasPhysics && p2->hasPhysics)
+				if (p1->hasCollision && p2->hasCollision)
 				{
 					glm::vec3 loa; // Line of action
 					glm::vec3 poc; // Point of collision
@@ -54,7 +56,7 @@ void Physics::update(float dt)
 						}
 						if (sphereCuboidCollision(*p1, *p2, loa, poc))
 						{
-							printf("Collision [S,C]\n");
+							printf("Collision [S,C] sPos: (%f, %f, %f)\n", p1->pos.x, p1->pos.y, p1->pos.z);
 							collisionResponse(dt, p1, p2, 1.0f, loa, poc);
 						}
 
@@ -70,14 +72,14 @@ void Physics::update(float dt)
 						if (lineSegmentSphereCollision(*p1, *p2, loa, poc))
 						{
 							printf("Collision [L,S]\n");
-							collisionResponseArrowSphere(dt, p1, p2, 0.5f, loa, poc);
+							collisionResponseArrowSphere(dt, p1, p2, 0.1f, loa, poc);
 						}
 
 					}
 				}
 			}
 		}
-		
+
 		time = 0.0f;
 	}
 }
@@ -109,13 +111,33 @@ void Physics::updateProjectile(float dt, Projectile* projectile, unsigned int i)
 		projectile->pos += projectile->vel * dt;
 		projectile->ang += projectile->angVel * dt;
 
-		if (glm::length2(projectile->vel) > EPSILON)
-			projectile->dir = glm::normalize(projectile->vel);
+		for (Projectile* child : projectile->children)
+		{
+			rotate(child->pos, projectile->angVel * dt);
+			rotate(child->dir, projectile->angVel * dt);
+		}
+
+		if (IS_TYPE(projectile, LineSegment))
+		{
+			glm::vec3 angle = (projectile->angVel)*dt;
+			if (glm::length2(angle) < EPSILON)
+			{
+				projectile->dir = glm::normalize(projectile->vel);
+			}
+			else
+			{
+				LineSegment* ls = (LineSegment*)projectile->geometry;
+				glm::vec3 mc = -projectile->dir*ls->d*ls->mcFactor;
+				rotate(mc, angle);
+				projectile->pos = mc + projectile->pos + projectile->dir*ls->d*ls->mcFactor;
+				rotate(projectile->dir, angle);
+			}
+		}
 	}
 	static float t = 0.0f;
-	t += dt/ TIME_FACTOR;
-	if (t > 1.f) 
-	{ 
+	t += dt / TIME_FACTOR;
+	if (t > 1.f)
+	{
 		//printf("[%d]fd: %f, v: %f\n", i, fd, glm::length(projectile->vel));
 		t = 0.0f;
 	}
@@ -146,7 +168,7 @@ glm::vec3 Physics::getClosestPointOBB(const glm::vec3 & p, const glm::vec3 & c, 
 
 		if (dist < -glm::length(extension))
 			dist = -glm::length(extension);
-	
+
 		q += dist * normals[i];
 	}
 	return q;
@@ -173,12 +195,12 @@ bool Physics::sphereSphereCollision(Projectile& p1, Projectile& p2, glm::vec3& l
 
 bool Physics::sphereCuboidCollision(Projectile & sphere, Projectile & cuboid, glm::vec3 & loa, glm::vec3& poc)
 {
-	
+
 	glm::vec3 right(1.0f, 0.0f, 0.0f);
 	glm::vec3 up(0.0f, 1.0f, 0.0f);
 	glm::vec3 forward(0.0f, 0.0f, 1.0f);
 
-	glm::vec3 normals[3] = {right, up, forward};
+	glm::vec3 normals[3] = { right, up, forward };
 
 	glm::vec3 size = ((Cuboid*)cuboid.geometry)->dim;
 	float radius = ((Sphere*)sphere.geometry)->radius;
@@ -188,8 +210,8 @@ bool Physics::sphereCuboidCollision(Projectile & sphere, Projectile & cuboid, gl
 	float minL = 100000.f;
 	for (unsigned int i = 0; i < 6; i++)
 	{
-		glm::vec3 normal = (i > 2 ? -1.f : 1.f) * normals[i%3];
-		glm::vec3 pointOnPlane = cuboid.pos + size[i%3]*normal;
+		glm::vec3 normal = (i > 2 ? -1.f : 1.f) * normals[i % 3];
+		glm::vec3 pointOnPlane = cuboid.pos + size[i % 3] * normal;
 		glm::vec3 v = sphere.pos - pointOnPlane;
 		float l = glm::dot(normal, v);
 		if (l > 0.0)
@@ -232,7 +254,7 @@ bool Physics::lineSegmentSphereCollision(Projectile & p1, Projectile & p2, glm::
 	float d2 = glm::dot(p1.dir, p1.dir);
 	float alpha = glm::dot(p, p1.dir) / d2;
 	float beta = (glm::dot(p, p) - sphere->radius*sphere->radius) / d2;
-	
+
 	float gamma = alpha * alpha - beta;
 	if (gamma < 0.0f) return false; // No collision
 
@@ -240,8 +262,10 @@ bool Physics::lineSegmentSphereCollision(Projectile & p1, Projectile & p2, glm::
 
 	if (d < 0.0f || d >= lineSegment->d) return false;  // Too long or too short.
 
-	poc = p1.pos + p1.dir*d;
+	poc = p1.pos + p1.dir * d;
 	loa = glm::normalize(poc - p2.pos);
+	glm::vec3 end = p1.pos + p1.dir * lineSegment->d;
+	p1.pos += poc - end;
 	return true;
 }
 // TODO: Not realistic if mc not align with loa.
@@ -250,7 +274,7 @@ void Physics::collisionResponse(float dt, Projectile* p1, Projectile* p2, float 
 	float v1rho = glm::dot(loa, p1->vel);
 	float v2rho = glm::dot(loa, p2->vel);
 	float totalMass = p1->mass + p2->mass;
-	
+
 	float A = (p1->mass - e * p2->mass) / totalMass;
 	float B = (1.f + e)*p2->mass / totalMass;
 	float u1rho = A * v1rho + B * v2rho;
@@ -262,47 +286,18 @@ void Physics::collisionResponse(float dt, Projectile* p1, Projectile* p2, float 
 	glm::vec3 preVel1 = p1->vel;
 	glm::vec3 preVel2 = p2->vel;
 
-	// TODO: Add friction and angular velocity.
 	float dv1 = u1rho - v1rho;
 	float dv2 = u2rho - v2rho;
-	p1->vel += dv1*loa;
-	p2->vel += dv2*loa;
-
-	// Avoid unecessary collision.
-	if (!(IS_TYPE(p1, LineSegment) || IS_TYPE(p2, LineSegment)))
+	if (p1->hasPhysics)
 	{
+		p1->vel += dv1 * loa;
 		p1->pos += glm::normalize(p1->vel)*0.1f;
+	}
+	if (p2->hasPhysics)
+	{
+		p2->vel += dv2 * loa;
 		p2->pos += glm::normalize(p2->vel)*0.1f;
 	}
-	glm::vec3 er = loa;
-	glm::vec3 edv = glm::normalize(preVel2-preVel1);
-	glm::vec3 edvLoaCross = glm::cross(edv, loa);
-	
-	// If moving on same line => no angular velocity.
-	//if (glm::length2(edvLoaCross) > EPSILON)
-	{
-		//glm::vec3 en = glm::cross(glm::normalize(edvLoaCross), loa);
-
-		// Angular velocity
-		glm::vec3 angAcc1 = getAngularAcc(p1, p2, poc, loa);
-		p1->angVel += angAcc1 * dt;
-
-		glm::vec3 angAcc2 = getAngularAcc(p2, p1, poc, loa);
-		p2->angVel += angAcc2 * dt;
-
-		/*
-		if (IS_TYPE(p1, Sphere))
-			p1->angVel += angVelSphere(p1, p2, dv1, 0.1f, er, en);
-		else if (IS_TYPE(p1, Cuboid))
-			p1->angVel = angVelCuboid(p1, p2, poc, dv1, 0.1f, er, en);
-
-		if (IS_TYPE(p2, Sphere))
-			p2->angVel += angVelSphere(p2, p1, dv2, 0.1f, er, -en);
-		else if (IS_TYPE(p2, Cuboid))
-			p2->angVel = angVelCuboid(p2, p1, poc, dv2, 0.1f, er, -en);
-		*/
-	}
-	//printf("av1: %f, av2: %f\n", p1->angVel.z, p2->angVel.z);
 }
 
 void Physics::collisionResponseArrowSphere(float dt, Projectile * p1, Projectile * p2, float e, const glm::vec3 & loa, const glm::vec3 & poc)
@@ -324,7 +319,6 @@ void Physics::collisionResponseArrowSphere(float dt, Projectile * p1, Projectile
 
 	float dv1 = u1rho - v1rho;
 	float dv2 = u2rho - v2rho;
-	//p1->vel += dv1 * loa;
 	p2->vel += dv2 * loa;
 
 	Sphere* sphere = (Sphere*)p2->geometry;
@@ -334,10 +328,22 @@ void Physics::collisionResponseArrowSphere(float dt, Projectile * p1, Projectile
 		// Arrow penetrates sphere
 		glm::vec3 d = perpDistLineToPoint(p1->pos, p1->dir, p2->pos);
 		float angVel = glm::length(preVel1) * (5.f*p1->mass*glm::length(d)) / (2.f*p2->mass*sphere->radius*sphere->radius);
-		p2->angVel = angVel*glm::normalize(glm::cross(d, p1->dir));
+		p2->angVel += angVel * glm::normalize(glm::cross(d, p1->dir));
 		p2->addChild(p1);
 	}
-
+	else
+	{
+		LineSegment* lineSegment = (LineSegment*)p1->geometry;
+		float inertiaCyl = (1.f / 12.f)*p1->mass * lineSegment->d*lineSegment->d;
+		float centerToMc = lineSegment->mcFactor*lineSegment->d - lineSegment->d / 2.f;
+		float inertiaOffset = p1->mass * centerToMc*centerToMc;
+		float inertiaTot = inertiaCyl + inertiaOffset;
+		float angVel = p1->mass * lineSegment->d*dv1 / (2.f*inertiaTot);
+		p1->angVel += angVel * glm::normalize(glm::cross(p1->dir, loa));
+		p1->vel += dv1 * loa;
+		printf("AngVel: %f\n", angVel);
+		//printf("AngVel: (%f, %f, %f)\n", p1->angVel.x, p1->angVel.y, p1->angVel.z);
+	}
 }
 
 glm::vec3 Physics::perpDistLineToPoint(const glm::vec3 & p, const glm::vec3 & dir, const glm::vec3 & c)
@@ -345,13 +351,13 @@ glm::vec3 Physics::perpDistLineToPoint(const glm::vec3 & p, const glm::vec3 & di
 	float a = 2.f*glm::dot(p, dir) - glm::dot(dir, c);
 	float b = glm::dot(p, p) - glm::dot(p, c);
 
-	float alpha = -a*.5f;
+	float alpha = -a * .5f;
 	float gamma = a * a - b;
 
 	if (gamma < 0.0f) return glm::vec3(0.0f);
 
 	float l = alpha - sqrt(gamma);
-	return (p+dir*l) - c;
+	return (p + dir * l) - c;
 }
 
 glm::vec3 Physics::getAngularAcc(Projectile * p, Projectile * p2, const glm::vec3& poc, const glm::vec3& loa)
@@ -393,7 +399,7 @@ glm::vec3 Physics::angVelSphere(Projectile* p, Projectile* p2, float dv, float f
 {
 	Sphere* sphere = (Sphere*)p->geometry;
 	sphere->inertia = .4f*p->mass*sphere->radius*sphere->radius;
-	return angVelCalc(*p, sphere->radius, dv, friction, er, en)/sphere->inertia;
+	return angVelCalc(*p, sphere->radius, dv, friction, er, en) / sphere->inertia;
 }
 
 glm::vec3 Physics::angVelCuboid(Projectile* p, Projectile* p2, const glm::vec3& poc, float dv, float friction, const glm::vec3& er, const glm::vec3& en)
@@ -415,7 +421,7 @@ glm::vec3 Physics::angVelCuboid(Projectile* p, Projectile* p2, const glm::vec3& 
 
 float Physics::inertiaCuboid(float m, float a, float b)
 {
-	return m * (a*a + b*b) / 12.f;
+	return m * (a * a + b * b) / 12.f;
 }
 
 glm::vec3 Physics::angVelCalc(Projectile & p, float r, float dv, float friction, const glm::vec3 & er, const glm::vec3 & en)

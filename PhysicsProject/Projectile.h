@@ -54,35 +54,29 @@ struct Bow
 
 struct Projectile
 {
-	glm::vec3 acc;
-	glm::vec3 vel;
-	glm::vec3 pos;
-	glm::vec3 angVel;
-	glm::vec3 ang;
-	glm::vec3 dir;
-	float area;
-	float mass;
-	float cd;
-	Geometry* geometry;
+	glm::vec3 acc = {0.0f, 0.0f, 0.0f};
+	glm::vec3 vel = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 pos = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 angVel = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 ang = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 dir = { 1.0f, 0.0f, 0.0f };
+	float area = 1.f;
+	float mass = 1.f;
+	float cd = 0.5f;
+	Geometry* geometry = nullptr;
 	bool hasPhysics = true;
+	bool hasCollision = true;
 
-	Projectile* parent;
+	Projectile* parent = nullptr;
 	std::vector<Projectile*> children;
 
 	void addChild(Projectile* p)
 	{
+		p->hasCollision = false;
 		p->hasPhysics = false;
 		p->pos = p->pos - this->pos;
 		p->parent = this;
 		children.push_back(p);
-	}
-
-	void updateChildren()
-	{
-		for (Projectile* child : this->children)
-		{
-
-		}
 	}
 };
 
