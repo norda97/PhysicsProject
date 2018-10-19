@@ -2,11 +2,13 @@
 #define PROJECTILE_H
 
 #include "glm\glm.hpp"
+#include "SFML/Graphics.hpp"
 
 struct Geometry
 {
 	enum Type { Sphere, Cuboid, LineSegment } type;
-	Geometry(Type type) : type(type) {}
+	Geometry(Type type) : type(type), color(sf::Color::White) {}
+	sf::Color color;
 };
 
 struct Sphere : public Geometry

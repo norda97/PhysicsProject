@@ -1,23 +1,25 @@
 #include "Utils.h"
 
-glm::vec2 toScreenSpace(const glm::vec3 & v, sf::RenderWindow & window)
+glm::vec2 toScreenSpace(const glm::vec3 & v, sf::RenderWindow & window, bool viewXY)
 {
-	float x = v.x / virtSize.x * (float)window.getSize().x;
-	float y = (virtSize.y - v.y) / virtSize.y * (float)window.getSize().y;
-	return glm::vec2(x, y);
-}
-
-glm::vec2 toScreenSpace(const glm::vec2 & v, sf::RenderWindow & window)
-{
-	float x = v.x / virtSize.x * (float)window.getSize().x;
-	float y = v.y / virtSize.y * (float)window.getSize().y;
-	return glm::vec2(x, y);
+	float x = v.x / virtSize.x * (float)window.getSize().x * (ONE_VIEW ? 1.f : 0.5f);
+	
+	if (viewXY)
+	{
+		float y = (virtSize.y - v.y) / virtSize.y * (float)window.getSize().y;
+		return glm::vec2(x, y);
+	}
+	else
+	{
+		float z = (virtSize.z - v.z) / virtSize.z * (float)window.getSize().y;
+		return glm::vec2(x + (float)window.getSize().x*0.5f, z-(float)window.getSize().y*.5f);
+	}
 }
 
 float toScreenSpace(float v, sf::RenderWindow & window, unsigned int sideIndex)
 {
-	glm::vec2 w(window.getSize().x, window.getSize().y);
-	return v / virtSize[sideIndex] * (float)(w[sideIndex]);
+	glm::vec2 w(window.getSize().x * (ONE_VIEW ? 1.f : 0.5f), window.getSize().y);
+	return v / virtSize[sideIndex] * (float)(w[sideIndex == 2 ? 1 : sideIndex]);
 }
 
 void rotate(glm::vec3& v, const glm::vec3& angle)
@@ -54,4 +56,14 @@ void rotate(glm::vec3& v, const glm::vec3& angle)
 	v.x = v2.x;
 	v.y = v2.y;
 	v.z = v2.z;
+}
+
+float lerp(float a, float b, float t)
+{
+	return a*t + b*(1.0f - t);
+}
+
+sf::Color mix(const sf::Color & a, const sf::Color & b, float t)
+{
+	return sf::Color(lerp(a.r, b.r, t), lerp(a.g, b.g, t), lerp(a.b, b.b, t), 255);
 }

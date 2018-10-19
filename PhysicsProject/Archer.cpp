@@ -32,6 +32,7 @@ Archer::Archer(const glm::vec3& pos)
 
 	this->lineSegment.d = 0.7f;
 	this->lineSegment.mcFactor = 0.7f; // Procent
+	this->lineSegment.color = sf::Color(0xD2691EFF); // Chocolate brown
 }
 
 Archer::~Archer()
@@ -74,13 +75,21 @@ void Archer::processInput(sf::RenderWindow& window, Physics& physics, float dt)
 {
 	sf::Vector2i mPos = sf::Mouse::getPosition(window);
 
-	glm::vec2 pos = toScreenSpace(this->pos, window);
-
-	glm::vec2 mv((float)mPos.x - pos.x, (float)mPos.y - pos.y);
-	mv = glm::normalize(mv);
-	this->dir.x = mv.x;
-	this->dir.y = -mv.y;
+	glm::vec2 pos = toScreenSpace(this->pos, window, true);
 	
+	glm::vec2 mv((float)mPos.x - pos.x, (float)mPos.y - pos.y);
+	glm::vec3 localDir(mv.x, -mv.y, 0.0f);
+	localDir = glm::normalize(localDir);
+	
+	float angleStep = 3.14159f/4.f * dt;
+	static float angle = 0.0f;
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
+		angle -= angleStep;
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
+		angle += angleStep;
+	rotate(localDir, { 0.0f, angle, 0.0f });
+	this->dir = localDir;
+
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space))
 	{
 		this->activated = false;

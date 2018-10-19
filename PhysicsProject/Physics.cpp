@@ -5,12 +5,10 @@
 
 #include "Utils.h"
 
-#define IS_TYPE(x, t) (x->geometry->type == Geometry::t)
-
 Physics::Physics()
 {
 	this->grav = 9.82;
-	this->penetrationMomentum = 0.6f;
+	this->penetrationMomentum = 0.5f;
 }
 
 Physics::~Physics()
@@ -43,7 +41,7 @@ void Physics::update(float dt)
 						if (sphereSphereCollision(*p1, *p2, loa, poc))
 						{
 							printf("Collision [S,S]\n");
-							collisionResponse(dt, p1, p2, 1.0f, loa, poc);
+							collisionResponse(dt, p1, p2, 0.85f, loa, poc);
 						}
 					}
 					else if ((IS_TYPE(p1, Sphere) && IS_TYPE(p2, Cuboid)) || (IS_TYPE(p1, Cuboid) && IS_TYPE(p2, Sphere)))
@@ -59,7 +57,20 @@ void Physics::update(float dt)
 							printf("Collision [S,C] sPos: (%f, %f, %f)\n", p1->pos.x, p1->pos.y, p1->pos.z);
 							collisionResponse(dt, p1, p2, 1.0f, loa, poc);
 						}
+					}
+					else if ((IS_TYPE(p1, Cuboid) && IS_TYPE(p2, LineSegment)) || (IS_TYPE(p1, LineSegment) && IS_TYPE(p2, Cuboid)))
+					{
+						if (IS_TYPE(p2, Cuboid))
+						{
+							Projectile* tmp = p2;
+							p2 = p1;
+							p1 = tmp;
+						}
 
+						float d = ((LineSegment*)p2->geometry)->d;
+						float mc = ((LineSegment*)p2->geometry)->mcFactor;
+						if (pointCuboidCollision(p2->pos + p2->dir*d, *p1) || pointCuboidCollision(p2->pos, *p1) || pointCuboidCollision(p2->pos+p2->dir*mc, *p1))
+							p1->addChild(p2);
 					}
 					else if ((IS_TYPE(p1, Sphere) && IS_TYPE(p2, LineSegment)) || (IS_TYPE(p1, LineSegment) && IS_TYPE(p2, Sphere)))
 					{
@@ -195,7 +206,6 @@ bool Physics::sphereSphereCollision(Projectile& p1, Projectile& p2, glm::vec3& l
 
 bool Physics::sphereCuboidCollision(Projectile & sphere, Projectile & cuboid, glm::vec3 & loa, glm::vec3& poc)
 {
-
 	glm::vec3 right(1.0f, 0.0f, 0.0f);
 	glm::vec3 up(0.0f, 1.0f, 0.0f);
 	glm::vec3 forward(0.0f, 0.0f, 1.0f);
@@ -268,6 +278,31 @@ bool Physics::lineSegmentSphereCollision(Projectile & p1, Projectile & p2, glm::
 	p1.pos += poc - end;
 	return true;
 }
+
+bool Physics::pointCuboidCollision(const glm::vec3& p, Projectile & cuboid)
+{
+	glm::vec3 right(1.0f, 0.0f, 0.0f);
+	glm::vec3 up(0.0f, 1.0f, 0.0f);
+	glm::vec3 forward(0.0f, 0.0f, 1.0f);
+
+	glm::vec3 normals[3] = { right, up, forward };
+
+	glm::vec3 size = ((Cuboid*)cuboid.geometry)->dim;
+
+	int inside = 0;
+	glm::vec3 v = p - cuboid.pos;
+	for (unsigned int i = 0; i < 3; i++)
+	{
+		glm::vec3 normal = normals[i];
+		if (abs(glm::dot(normal, v)) < size[i])
+			inside++;
+	}
+	if (inside == 3)
+		return true;
+	else
+		return false;
+
+}
 // TODO: Not realistic if mc not align with loa.
 void Physics::collisionResponse(float dt, Projectile* p1, Projectile* p2, float e, const glm::vec3 & loa, const glm::vec3& poc)
 {
@@ -291,12 +326,16 @@ void Physics::collisionResponse(float dt, Projectile* p1, Projectile* p2, float 
 	if (p1->hasPhysics)
 	{
 		p1->vel += dv1 * loa;
-		p1->pos += glm::normalize(p1->vel)*0.1f;
+		
+		if (glm::length2(p1->vel) > 5)
+			p1->pos += glm::normalize(p1->vel)*0.1f;
 	}
 	if (p2->hasPhysics)
 	{
 		p2->vel += dv2 * loa;
-		p2->pos += glm::normalize(p2->vel)*0.1f;
+		
+		if (glm::length2(p2->vel) > 5)
+			p2->pos += glm::normalize(p2->vel)*0.1f;
 	}
 }
 

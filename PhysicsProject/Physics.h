@@ -9,6 +9,8 @@
 #define UPDATE_FREQUENCY 60.f
 #define TIME_FACTOR 0.5f
 
+#define IS_TYPE(x, t) (x->geometry->type == Geometry::t)
+
 class Physics
 {
 public:
@@ -30,6 +32,7 @@ private:
 	bool sphereSphereCollision(Projectile& p1, Projectile& p2, glm::vec3& loa, glm::vec3& poc);
 	bool sphereCuboidCollision(Projectile& sphere, Projectile& cuboid, glm::vec3& loa, glm::vec3& poc);
 	bool lineSegmentSphereCollision(Projectile& lineSegment, Projectile& sphere, glm::vec3& loa, glm::vec3& poc);
+	bool pointCuboidCollision(const glm::vec3& p, Projectile & cuboid);
 
 	void collisionResponse(float dt, Projectile* p1, Projectile* p2, float e, const glm::vec3& loa, const glm::vec3& poc);
 	void collisionResponseArrowSphere(float dt, Projectile* p1, Projectile* p2, float e, const glm::vec3& loa, const glm::vec3& poc);

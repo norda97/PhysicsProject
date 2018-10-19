@@ -145,12 +145,14 @@
     <ClCompile Include="Archer.cpp" />
     <ClCompile Include="Graphics.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ObjectManager.cpp" />
     <ClCompile Include="Physics.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Archer.h" />
     <ClInclude Include="Graphics.h" />
+    <ClInclude Include="ObjectManager.h" />
     <ClInclude Include="Physics.h" />
     <ClInclude Include="Projectile.h" />
     <ClInclude Include="Utils.h" />
