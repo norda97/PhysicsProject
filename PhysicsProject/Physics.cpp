@@ -145,13 +145,6 @@ void Physics::updateProjectile(float dt, Projectile* projectile, unsigned int i)
 			}
 		}
 	}
-	static float t = 0.0f;
-	t += dt / TIME_FACTOR;
-	if (t > 1.f)
-	{
-		//printf("[%d]fd: %f, v: %f\n", i, fd, glm::length(projectile->vel));
-		t = 0.0f;
-	}
 }
 
 float Physics::calcAirResistence(float cd, float area, const glm::vec3 & vel)
@@ -161,7 +154,6 @@ float Physics::calcAirResistence(float cd, float area, const glm::vec3 & vel)
 
 glm::vec3 Physics::getClosestPointOBB(const glm::vec3 & p, const glm::vec3 & c, const glm::vec3 & size)
 {
-	// TODO: Put this in Cuboid and add rotation!!!!!
 	glm::vec3 right(1.0f, 0.0f, 0.0f);
 	glm::vec3 up(0.0f, 1.0f, 0.0f);
 	glm::vec3 forward(0.0f, 0.0f, 1.0f);
@@ -240,7 +232,6 @@ bool Physics::sphereCuboidCollision(Projectile & sphere, Projectile & cuboid, gl
 		else
 		{
 			collidedWith++;
-			// ?
 			if (abs(l) < minL)
 			{
 				minL = abs(l);
@@ -326,16 +317,12 @@ void Physics::collisionResponse(float dt, Projectile* p1, Projectile* p2, float 
 	if (p1->hasPhysics)
 	{
 		p1->vel += dv1 * loa;
-		
-		if (glm::length2(p1->vel) > 5)
-			p1->pos += glm::normalize(p1->vel)*0.1f;
+		p1->pos += glm::normalize(p1->vel)*0.1f;
 	}
 	if (p2->hasPhysics)
 	{
 		p2->vel += dv2 * loa;
-		
-		if (glm::length2(p2->vel) > 5)
-			p2->pos += glm::normalize(p2->vel)*0.1f;
+		p2->pos += glm::normalize(p2->vel)*0.1f;
 	}
 }
 
@@ -380,8 +367,6 @@ void Physics::collisionResponseArrowSphere(float dt, Projectile * p1, Projectile
 		float angVel = p1->mass * lineSegment->d*dv1 / (2.f*inertiaTot);
 		p1->angVel += angVel * glm::normalize(glm::cross(p1->dir, loa));
 		p1->vel += dv1 * loa;
-		printf("AngVel: %f\n", angVel);
-		//printf("AngVel: (%f, %f, %f)\n", p1->angVel.x, p1->angVel.y, p1->angVel.z);
 	}
 }
 
@@ -397,73 +382,4 @@ glm::vec3 Physics::perpDistLineToPoint(const glm::vec3 & p, const glm::vec3 & di
 
 	float l = alpha - sqrt(gamma);
 	return (p + dir * l) - c;
-}
-
-glm::vec3 Physics::getAngularAcc(Projectile * p, Projectile * p2, const glm::vec3& poc, const glm::vec3& loa)
-{
-	// TODO: Calculate the right force. (I don´t know if this is correct)
-	float l = glm::length(p2->acc*p2->mass) + glm::length(p->acc*p->mass);
-	glm::vec3 force = glm::normalize(p2->acc)*l;
-	glm::vec3 forceLoa = glm::dot(force, loa)*loa;
-	glm::vec3 r = poc - p->pos;
-	// TODO: Make this more pretty.
-	if (abs(glm::dot(r, force)) >= glm::length(r)*glm::length(force) - EPSILON)
-		return glm::vec3(0.0f, 0.0f, 0.0f);
-	glm::vec3 torque = glm::cross(r, force); // length = r*f*sin(angle), r(1,0,0), f(0,-10,0) => positive ang z.
-	return torque / getMomemtOfInertia(p);
-}
-
-float Physics::getMomemtOfInertia(Projectile * p)
-{
-	if (IS_TYPE(p, Sphere))
-	{
-		Sphere* sphere = (Sphere*)p->geometry;
-		sphere->inertia = .4f*p->mass*sphere->radius*sphere->radius;
-		return sphere->inertia;
-	}
-	else if (IS_TYPE(p, Cuboid))
-	{
-		Cuboid* cuboid = (Cuboid*)p->geometry;
-		// TODO: FIX THIS so it is not axis aligned.
-		float ix = inertiaCuboid(p->mass, cuboid->dim.y, cuboid->dim.z);
-		float iy = inertiaCuboid(p->mass, cuboid->dim.x, cuboid->dim.z);
-		float iz = inertiaCuboid(p->mass, cuboid->dim.x, cuboid->dim.y);
-		cuboid->inertia = glm::vec3(ix, iy, iz);
-		return glm::length(cuboid->inertia);
-	}
-	return 0.0f;
-}
-
-glm::vec3 Physics::angVelSphere(Projectile* p, Projectile* p2, float dv, float friction, const glm::vec3& er, const glm::vec3& en)
-{
-	Sphere* sphere = (Sphere*)p->geometry;
-	sphere->inertia = .4f*p->mass*sphere->radius*sphere->radius;
-	return angVelCalc(*p, sphere->radius, dv, friction, er, en) / sphere->inertia;
-}
-
-glm::vec3 Physics::angVelCuboid(Projectile* p, Projectile* p2, const glm::vec3& poc, float dv, float friction, const glm::vec3& er, const glm::vec3& en)
-{
-
-	Cuboid* cuboid = (Cuboid*)p->geometry;
-	// TODO: FIX THIS so it is not axis aligned.
-	float ix = inertiaCuboid(p->mass, cuboid->dim.y, cuboid->dim.z);
-	float iy = inertiaCuboid(p->mass, cuboid->dim.x, cuboid->dim.z);
-	float iz = inertiaCuboid(p->mass, cuboid->dim.x, cuboid->dim.y);
-	cuboid->inertia = glm::vec3(ix, iy, iz);
-	float r = glm::length(poc - p->pos);
-	glm::vec3 vel = angVelCalc(*p, r, dv, friction, er, en);
-	vel.x /= ix;
-	vel.y /= iy;
-	vel.z /= iz;
-	return vel;
-}
-
-float Physics::inertiaCuboid(float m, float a, float b)
-{
-	return m * (a * a + b * b) / 12.f;
-}
-
-glm::vec3 Physics::angVelCalc(Projectile & p, float r, float dv, float friction, const glm::vec3 & er, const glm::vec3 & en)
-{
-	return (p.mass*r*friction*dv) * glm::cross(en, er);
 }

@@ -31,9 +31,9 @@ int main()
 
 	sf::Clock t;
 	float time = 0.0f;
+	float dt = 0.0f;
 	while (window.isOpen())
 	{
-		float dt = t.getElapsedTime().asSeconds();
 
 		sf::Event event;
 		while (window.pollEvent(event))
@@ -41,14 +41,15 @@ int main()
 			if (event.type == sf::Event::Closed)
 				window.close();
 		}
+		t.restart();
 
 		objectManager.updateInput(dt);
 		objectManager.update(dt);
-		t.restart();
 		
 		window.clear(); 
 		objectManager.render();
 		window.display();
+		dt = t.getElapsedTime().asSeconds();
 
 		time += dt;
 		if (time > 1.0f)

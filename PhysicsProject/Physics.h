@@ -38,16 +38,6 @@ private:
 	void collisionResponseArrowSphere(float dt, Projectile* p1, Projectile* p2, float e, const glm::vec3& loa, const glm::vec3& poc);
 	glm::vec3 perpDistLineToPoint(const glm::vec3& p, const glm::vec3& dir, const glm::vec3& c);
 	
-	glm::vec3 getAngularAcc(Projectile* p, Projectile* p2, const glm::vec3& poc, const glm::vec3& loa);
-	float getMomemtOfInertia(Projectile* p);
-
-	glm::vec3 angVelSphere(Projectile* p, Projectile* p2, float dv, float friction, const glm::vec3& er, const glm::vec3& en);
-	glm::vec3 angVelCuboid(Projectile* p, Projectile* p2, const glm::vec3& poc, float dv, float friction, const glm::vec3& er, const glm::vec3& en);
-
-	float inertiaCuboid(float m, float a, float b);
-
-	glm::vec3 angVelCalc(Projectile& p, float r, float dv, float friction, const glm::vec3& er, const glm::vec3& en);
-
 	std::vector<Projectile*> projectiles;
 	float grav;
 	float penetrationMomentum;
